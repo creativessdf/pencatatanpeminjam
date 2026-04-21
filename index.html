@@ -473,17 +473,28 @@
                 };
 
                 const downloadPdf = () => {
-                    const element = document.getElementById('pdf-content');
+                    const originalElement = document.getElementById('pdf-content');
                     
-                    // 1. Simpan pengaturan style CSS asli
-                    const originalCssText = element.style.cssText;
+                    // 1. Trik Kloning (Clone Node): Kita copy elemen target secara diam-diam
+                    // Ini mencegah bug layar terpotong, blank putih, atau konflik dengan modal scroll
+                    const printContainer = document.createElement('div');
+                    const clone = originalElement.cloneNode(true);
                     
-                    // 2. Set ukuran fix proporsional A4 Portrait (800px width)
-                    // Ini memastikan isi PDF tidak terpotong ke samping dan tercetak dengan rasio sempurna.
-                    element.style.cssText = 'width: 800px !important; max-width: 800px !important; position: absolute; top: 0; left: 0; margin: 0; padding: 40px; background: white; z-index: 9999;';
+                    // 2. Atur ukuran dan posisi kloningan menjadi fix Desktop (800px)
+                    // Letakkan di belakang layar (z-index negatif) agar tidak terlihat berantakan oleh pengguna
+                    printContainer.style.position = 'absolute';
+                    printContainer.style.top = '0';
+                    printContainer.style.left = '0';
+                    printContainer.style.width = '800px';
+                    printContainer.style.background = 'white';
+                    printContainer.style.zIndex = '-9999';
+                    
+                    // 3. Masukkan ke dalam body sementara waktu
+                    printContainer.appendChild(clone);
+                    document.body.appendChild(printContainer);
 
                     const opt = {
-                        margin:       [10, 0, 10, 0], // Margin atas dan bawah saja, sisi kiri-kanan menyesuaikan padding div
+                        margin:       [10, 0, 10, 0], // Margin atas dan bawah
                         filename:     `Riwayat_Pinjaman_${selectedDebtor.value.nama.replace(/\s+/g, '_')}.pdf`,
                         image:        { type: 'jpeg', quality: 1 },
                         html2canvas:  { 
@@ -494,16 +505,23 @@
                             scrollX: 0,
                             scrollY: 0
                         },
-                        // 3. Kembalikan ke format Kertas A4 Portrait (Berdiri)
+                        // Kembalikan ke format Kertas A4 Portrait (Berdiri)
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         
-                        // Menjaga agar tabel tidak terpotong paksa di tengah teks jika sampai halaman 2
+                        // Menjaga agar tabel tidak terpotong paksa jika sampai halaman 2
                         pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
                     };
                     
-                    // 4. Generate PDF, kembalikan ke semula setelah beres
-                    html2pdf().set(opt).from(element).save().then(() => {
-                        element.style.cssText = originalCssText;
+                    // 4. Generate PDF dari elemen kloningan tersebut
+                    html2pdf().set(opt).from(printContainer).save().then(() => {
+                        // 5. Bersihkan (Hapus) elemen kloningan setelah PDF selesai di-download
+                        document.body.removeChild(printContainer);
+                    }).catch(err => {
+                        console.error("Gagal membuat PDF:", err);
+                        // Tetap bersihkan elemen jika terjadi error
+                        if (document.body.contains(printContainer)) {
+                            document.body.removeChild(printContainer);
+                        }
                     });
                 };
 
