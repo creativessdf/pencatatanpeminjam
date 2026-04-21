@@ -470,28 +470,36 @@
                 const downloadPdf = () => {
                     const element = document.getElementById('pdf-content');
                     
-                    // 1. Simpan ukuran style asli
-                    const originalWidth = element.style.width;
-                    const originalMaxWidth = element.style.maxWidth;
+                    // 1. Simpan pengaturan style CSS asli
+                    const originalCssText = element.style.cssText;
                     
-                    // 2. Paksa elemen menjadi ukuran layout Desktop (800px) agar rapi di HP
-                    element.style.width = '800px';
-                    element.style.maxWidth = '800px';
+                    // 2. Trik Jitu: Paksa elemen ke ukuran lebar Landscape ideal (1024px) 
+                    // dan letakkan di posisi absolut ujung kiri atas (0,0). 
+                    // Ini mencegah bug layar terpotong di sebelah kiri saat di HP/layar kecil.
+                    element.style.cssText = 'width: 1024px !important; max-width: 1024px !important; position: absolute; top: 0; left: 0; margin: 0; padding: 40px; background: white; z-index: 9999;';
 
                     const opt = {
-                        margin:       10, // Margin 10mm (1 cm) keliling
+                        margin:       10, // Margin 10mm (1 cm) sekeliling kertas agar berada di tengah
                         filename:     `Riwayat_Pinjaman_${selectedDebtor.value.nama.replace(/\s+/g, '_')}.pdf`,
                         image:        { type: 'jpeg', quality: 1 },
-                        html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
-                        // Pastikan format kertas diatur mutlak ke 'a4'
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        html2canvas:  { 
+                            scale: 2, 
+                            useCORS: true, 
+                            logging: false, 
+                            windowWidth: 1024,
+                            scrollX: 0, // Reset scroll untuk memastikan pengambilan penuh
+                            scrollY: 0
+                        },
+                        // 3. Atur format ke Kertas A4 dan mode Lanskap (landscape / mendatar)
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                        
+                        // Fitur agar jika baris data bertambah banyak, tidak terpotong di tengah baris
                         pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
                     };
                     
-                    // 3. Generate PDF, lalu sesudah selesai, kembalikan ukuran layout ke semula
+                    // 4. Generate PDF, lalu sesudah selesai, kembalikan tampilan seperti semula secara otomatis
                     html2pdf().set(opt).from(element).save().then(() => {
-                        element.style.width = originalWidth;
-                        element.style.maxWidth = originalMaxWidth;
+                        element.style.cssText = originalCssText;
                     });
                 };
 
