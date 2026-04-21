@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Pinjaman Modern</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Custom scrollbar untuk tampilan modern */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 text-slate-800 font-sans min-h-screen selection:bg-indigo-200">
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10 bg-white/70 backdrop-blur-md px-6 py-4 rounded-2xl shadow-sm border border-white">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
+                    Buku Pinjaman
+                </h1>
+                <p class="text-sm text-slate-500 font-medium mt-1">Catat dan pantau transaksi dengan mudah</p>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- Status Koneksi -->
+                <div v-if="loading" class="hidden md:flex text-sm font-semibold text-indigo-500 items-center bg-indigo-50 px-3 py-1.5 rounded-full">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Sinkronisasi...
+                </div>
+                <div v-else class="hidden md:flex text-sm font-semibold text-emerald-600 items-center bg-emerald-50 px-3 py-1.5 rounded-full">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div> Siap Digunakan
+                </div>
+
+                <!-- Tombol Pengaturan -->
+                <button @click="showSettings = true" class="p-2.5 rounded-full bg-white shadow hover:shadow-md text-slate-600 hover:text-indigo-600 transition-all border border-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Widgets -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white rounded-3xl shadow-xl shadow-indigo-100/50 border border-slate-100 p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div class="relative z-10">
+                    <h3 class="text-slate-500 text-sm font-semibold mb-2 uppercase tracking-wider">Total Dipinjamkan</h3>
+                    <p class="text-3xl md:text-4xl font-bold text-blue-600">{{ formatRp(data.totalPinjaman) }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-3xl shadow-xl shadow-emerald-100/50 border border-slate-100 p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div class="relative z-10">
+                    <h3 class="text-slate-500 text-sm font-semibold mb-2 uppercase tracking-wider">Total Telah Dibayar</h3>
+                    <p class="text-3xl md:text-4xl font-bold text-emerald-500">{{ formatRp(data.totalPembayaran) }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-3xl shadow-xl shadow-rose-100/50 border border-slate-100 p-6 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-rose-50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                <div class="relative z-10">
+                    <h3 class="text-slate-500 text-sm font-semibold mb-2 uppercase tracking-wider">Sisa Total Pinjaman</h3>
+                    <p class="text-3xl md:text-4xl font-bold text-rose-500">{{ formatRp(data.sisaUtang) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Form Tambah Transaksi -->
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 p-6 sm:p-8 sticky top-6">
+                    <h2 class="text-xl font-bold mb-6 text-slate-800 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Catat Transaksi
+                    </h2>
+                    <form @submit.prevent="submitForm" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nama Peminjam</label>
+                            <input v-model="form.nama" type="text" required list="namaList" placeholder="Masukkan nama..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white focus:outline-none transition-colors">
+                            <datalist id="namaList">
+                                <option v-for="(val, name) in data.debtors" :key="name" :value="name"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Jenis Transaksi</label>
+                            <select v-model="form.tipe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white focus:outline-none transition-colors">
+                                <option value="Pinjaman">Memberikan Pinjaman Baru</option>
+                                <option value="Pembayaran">Menerima Pembayaran (Cicilan)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Tanggal</label>
+                            <input v-model="form.tanggal" type="date" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white focus:outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Jumlah (Rp)</label>
+                            <input :value="formattedJumlah" @input="updateJumlah" type="text" required placeholder="Contoh: 100.000" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white focus:outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Keterangan <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                            <input v-model="form.keterangan" type="text" placeholder="Catatan tambahan..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white focus:outline-none transition-colors">
+                        </div>
+                        <button type="submit" :disabled="loading" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3.5 px-4 rounded-xl hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+                            Simpan Transaksi
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Daftar Utang -->
+            <div class="lg:col-span-8">
+                <div class="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                    <div class="p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-slate-800">Daftar Peminjam</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50/80 text-slate-500 text-sm uppercase tracking-wider">
+                                <tr>
+                                    <th class="py-4 px-6 font-semibold border-b border-slate-200">Nama</th>
+                                    <th class="py-4 px-6 font-semibold border-b border-slate-200">Total Pinjaman</th>
+                                    <th class="py-4 px-6 font-semibold border-b border-slate-200">Telah Dibayar</th>
+                                    <th class="py-4 px-6 font-semibold border-b border-slate-200">Sisa Pinjaman</th>
+                                    <th class="py-4 px-6 font-semibold border-b border-slate-200 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-slate-600">
+                                <tr v-if="Object.keys(data.debtors).length === 0">
+                                    <td colspan="5" class="py-12 text-center text-slate-400">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg class="w-12 h-12 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            Belum ada data pinjaman yang dicatat.
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-for="(info, name) in data.debtors" :key="name" class="border-b border-slate-50 hover:bg-indigo-50/30 transition-colors group">
+                                    <td class="py-4 px-6 font-bold text-slate-800">{{ name }}</td>
+                                    <td class="py-4 px-6 text-blue-600 font-medium">{{ formatRp(info.totalPinjaman) }}</td>
+                                    <td class="py-4 px-6 text-emerald-600 font-medium">{{ formatRp(info.totalPembayaran) }}</td>
+                                    <td class="py-4 px-6 font-bold" :class="info.sisa > 0 ? 'text-rose-500' : 'text-slate-400'">
+                                        {{ formatRp(info.sisa) }}
+                                        <span v-if="info.sisa <= 0" class="ml-2 text-xs bg-emerald-100 text-emerald-600 py-1 px-2 rounded-full font-semibold">Lunas</span>
+                                    </td>
+                                    <td class="py-4 px-6 text-center">
+                                        <button @click="openDetail(name)" class="text-indigo-600 hover:text-white font-semibold border border-indigo-200 hover:bg-indigo-600 hover:border-indigo-600 px-4 py-1.5 rounded-lg transition-all shadow-sm">
+                                            Lihat Detail
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Pengaturan / URL Apps Script -->
+        <div v-if="showSettings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 opacity-100 transition-opacity">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 transform transition-transform scale-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Pengaturan Sistem
+                    </h3>
+                    <button @click="showSettings = false" class="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 p-2 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">URL Web App Google Apps Script</label>
+                        <p class="text-xs text-slate-500 mb-3">Masukkan URL Web App jika Anda menjalankan HTML ini di luar ekosistem Google Workspace (Misal: Localhost atau hosting lain).</p>
+                        <input v-model="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <button @click="showSettings = false" class="px-5 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors">Batal</button>
+                    <button @click="saveSettings" class="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">Simpan URL</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Detail & PDF -->
+        <div v-if="selectedDebtor" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+                
+                <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10">
+                    <h3 class="text-xl font-bold text-slate-800">Detail & Ekspor Laporan</h3>
+                    <button @click="selectedDebtor = null" class="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 hover:bg-rose-50 p-2 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <!-- Wrapper Scroll: Hanya wrapper ini yang punya scroll, bagian #pdf-content bebas scroll agar html2pdf bisa memfoto layar secara penuh ke bawah -->
+                <div class="overflow-y-auto flex-1 bg-slate-50/50 p-4 sm:p-8">
+                    <!-- Area yang akan di cetak PDF -->
+                    <div id="pdf-content" class="bg-white p-8 sm:p-10 rounded-2xl shadow-sm border border-slate-100 mx-auto w-full">
+                        
+                        <div class="text-center mb-8 pb-6 border-b-2 border-slate-100">
+                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Laporan Riwayat Pinjaman</h2>
+                            <p class="text-slate-500 mt-2 font-medium">Dicetak pada: {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl mb-8 border border-indigo-100">
+                            <p class="text-sm font-semibold text-indigo-400 uppercase tracking-wider mb-1">Nama Peminjam</p>
+                            <p class="font-black text-2xl text-indigo-900 mb-6">{{ selectedDebtor.nama }}</p>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                <div class="bg-white/60 p-4 rounded-xl border border-white">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Pinjaman</p>
+                                    <p class="font-bold text-xl text-blue-600">{{ formatRp(selectedDebtor.data.totalPinjaman) }}</p>
+                                </div>
+                                <div class="bg-white/60 p-4 rounded-xl border border-white">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Pembayaran</p>
+                                    <p class="font-bold text-xl text-emerald-600">{{ formatRp(selectedDebtor.data.totalPembayaran) }}</p>
+                                </div>
+                                <div class="bg-white/60 p-4 rounded-xl border border-white">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa Pinjaman</p>
+                                    <p class="font-bold text-xl" :class="selectedDebtor.data.sisa > 0 ? 'text-rose-500' : 'text-slate-600'">{{ formatRp(selectedDebtor.data.sisa) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="font-bold text-lg text-slate-800 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                            Rincian Transaksi
+                        </h4>
+                        
+                        <div class="rounded-xl border border-slate-200 overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
+                                        <th class="p-4 font-semibold">Tanggal</th>
+                                        <th class="p-4 font-semibold">Jenis Transaksi</th>
+                                        <th class="p-4 font-semibold text-right">Jumlah (Rp)</th>
+                                        <th class="p-4 font-semibold">Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-sm text-slate-700">
+                                    <tr v-for="(hist, index) in selectedDebtor.data.history" :key="index" class="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                                        <td class="p-4">{{ hist.tanggal }}</td>
+                                        <td class="p-4">
+                                            <span class="px-3 py-1 rounded-full text-xs font-bold" :class="hist.tipe === 'Pinjaman' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'">
+                                                {{ hist.tipe }}
+                                            </span>
+                                        </td>
+                                        <td class="p-4 text-right font-semibold">{{ formatRp(hist.jumlah) }}</td>
+                                        <td class="p-4 text-slate-500 italic">{{ hist.keterangan || '-' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Footer kecil untuk PDF -->
+                        <div class="mt-12 text-center text-xs text-slate-400">
+                            Laporan ini di-generate secara otomatis oleh Sistem Buku Pinjaman.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-8 py-5 border-t border-slate-100 bg-white flex justify-end gap-4 z-10">
+                    <button @click="selectedDebtor = null" class="px-6 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors">Tutup</button>
+                    <button @click="downloadPdf" class="px-6 py-2.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 shadow-lg shadow-rose-200 transition-all flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Simpan ke PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const loading = ref(true);
+                const selectedDebtor = ref(null);
+                
+                // State untuk URL eksternal
+                const showSettings = ref(false);
+                const scriptUrl = ref(localStorage.getItem('gas_url') || '');
+                
+                const form = ref({
+                    nama: '',
+                    tipe: 'Pinjaman',
+                    tanggal: new Date().toISOString().split('T')[0], // Hari ini
+                    jumlah: '',
+                    keterangan: ''
+                });
+
+                // Format ribuan untuk input jumlah
+                const formattedJumlah = ref('');
+                const updateJumlah = (e) => {
+                    // Hapus semua karakter selain angka
+                    let rawValue = e.target.value.replace(/[^0-9]/g, '');
+                    if (rawValue) {
+                        // Tambahkan titik setiap 3 digit
+                        formattedJumlah.value = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                        // Simpan nilai aslinya ke dalam form (berupa angka asli) untuk dikirim ke Spreadsheet
+                        form.value.jumlah = Number(rawValue);
+                    } else {
+                        formattedJumlah.value = '';
+                        form.value.jumlah = '';
+                    }
+                };
+
+                // Mock Data untuk Preview
+                const mockData = ref({
+                    totalPinjaman: 1500000,
+                    totalPembayaran: 350000,
+                    sisaUtang: 1150000,
+                    debtors: {
+                        "Budi Santoso": {
+                            totalPinjaman: 1000000,
+                            totalPembayaran: 250000,
+                            sisa: 750000,
+                            history: [
+                                { tipe: 'Pinjaman', tanggal: '2023-11-01', jumlah: 1000000, keterangan: 'Modal usaha warung' },
+                                { tipe: 'Pembayaran', tanggal: '2023-11-15', jumlah: 250000, keterangan: 'Cicilan bulan pertama' }
+                            ]
+                        },
+                        "Siti Aminah": {
+                            totalPinjaman: 500000,
+                            totalPembayaran: 100000,
+                            sisa: 400000,
+                            history: [
+                                { tipe: 'Pinjaman', tanggal: '2023-11-05', jumlah: 500000, keterangan: 'Biaya sekolah anak' },
+                                { tipe: 'Pembayaran', tanggal: '2023-11-20', jumlah: 100000, keterangan: '-' }
+                            ]
+                        }
+                    }
+                });
+
+                const data = ref({ totalPinjaman: 0, totalPembayaran: 0, sisaUtang: 0, debtors: {} });
+
+                const formatRp = (value) => {
+                    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+                };
+
+                const saveSettings = () => {
+                    localStorage.setItem('gas_url', scriptUrl.value);
+                    showSettings.value = false;
+                    loadData(); // Coba muat ulang data dengan URL baru
+                };
+
+                const loadData = async () => {
+                    loading.value = true;
+                    // Deteksi apakah sedang jalan murni di dalam Google Apps Script (HTMLService)
+                    if (typeof google !== 'undefined' && google.script) {
+                        google.script.run.withSuccessHandler(res => {
+                            data.value = JSON.parse(res);
+                            loading.value = false;
+                        }).getAppData();
+                    } 
+                    // Jika URL diisi dari pengaturan (digunakan di luar GAS / Localhost)
+                    else if (scriptUrl.value) {
+                        try {
+                            // Asumsi backend GS merespons GET request berupa JSON API (Perlu kustomisasi doPost/doGet di GS)
+                            const response = await fetch(scriptUrl.value + '?action=getData');
+                            if (!response.ok) throw new Error('Network error');
+                            const resData = await response.json();
+                            data.value = resData;
+                        } catch (error) {
+                            console.warn("Gagal Fetch URL Eksternal, menggunakan Mock Data.", error);
+                            setTimeout(() => { data.value = JSON.parse(JSON.stringify(mockData.value)); }, 500);
+                        } finally {
+                            loading.value = false;
+                        }
+                    } 
+                    // Fallback Mock Data
+                    else {
+                        setTimeout(() => {
+                            data.value = JSON.parse(JSON.stringify(mockData.value));
+                            loading.value = false;
+                        }, 600);
+                    }
+                };
+
+                const submitForm = async () => {
+                    loading.value = true;
+                    if (typeof google !== 'undefined' && google.script) {
+                        google.script.run.withSuccessHandler(() => {
+                            loadData();
+                            form.value.jumlah = '';
+                            formattedJumlah.value = '';
+                            form.value.keterangan = '';
+                        }).addTransaction(form.value);
+                    } else if (scriptUrl.value) {
+                        try {
+                            // Kirim POST request ke URL GS (CORS mode no-cors atau form urlencoded)
+                            await fetch(scriptUrl.value, {
+                                method: 'POST',
+                                body: JSON.stringify({ action: 'addTransaction', data: form.value }),
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain untuk hindari preflight CORS GS
+                            });
+                            form.value.jumlah = '';
+                            formattedJumlah.value = '';
+                            form.value.keterangan = '';
+                            loadData();
+                        } catch (e) {
+                            console.error(e);
+                            loading.value = false;
+                        }
+                    } else {
+                        // Simulasi simpan data
+                        setTimeout(() => {
+                            const { nama, tipe, tanggal, jumlah, keterangan } = form.value;
+                            const jml = Number(jumlah);
+                            
+                            if (!mockData.value.debtors[nama]) {
+                                mockData.value.debtors[nama] = { totalPinjaman: 0, totalPembayaran: 0, sisa: 0, history: [] };
+                            }
+                            
+                            if (tipe === 'Pinjaman') {
+                                mockData.value.totalPinjaman += jml;
+                                mockData.value.debtors[nama].totalPinjaman += jml;
+                                mockData.value.debtors[nama].sisa += jml;
+                                mockData.value.sisaUtang += jml;
+                            } else {
+                                mockData.value.totalPembayaran += jml;
+                                mockData.value.debtors[nama].totalPembayaran += jml;
+                                mockData.value.debtors[nama].sisa -= jml;
+                                mockData.value.sisaUtang -= jml;
+                            }
+                            
+                            mockData.value.debtors[nama].history.push({ tipe, tanggal, jumlah: jml, keterangan });
+                            
+                            form.value.jumlah = '';
+                            formattedJumlah.value = '';
+                            form.value.keterangan = '';
+                            loadData();
+                        }, 500);
+                    }
+                };
+
+                const openDetail = (nama) => {
+                    selectedDebtor.value = {
+                        nama: nama,
+                        data: data.value.debtors[nama]
+                    };
+                };
+
+                const downloadPdf = () => {
+                    const element = document.getElementById('pdf-content');
+                    const opt = {
+                        margin:       [0.5, 0.5, 0.5, 0.5], // Margin [atas, kiri, bawah, kanan]
+                        filename:     `Riwayat_Pinjaman_${selectedDebtor.value.nama.replace(/\s+/g, '_')}.pdf`,
+                        image:        { type: 'jpeg', quality: 1 },
+                        html2canvas:  { scale: 2, useCORS: true, logging: false },
+                        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // Mencegah tabel terpotong di tengah baris
+                    };
+                    
+                    html2pdf().set(opt).from(element).save();
+                };
+
+                onMounted(loadData);
+
+                return { 
+                    data, loading, form, submitForm, openDetail, 
+                    selectedDebtor, downloadPdf, formatRp,
+                    showSettings, scriptUrl, saveSettings,
+                    formattedJumlah, updateJumlah
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
