@@ -8,8 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- html2pdf -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- MENGGANTI LIBRARI PDF KE JSPDF MURNI & AUTOTABLE (ANTI-BLANK) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         /* Custom scrollbar untuk tampilan modern */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -202,7 +205,7 @@
             </div>
         </div>
 
-        <!-- Modal Detail & PDF -->
+        <!-- Modal Detail & PDF (Di Layar tetap tampil bagus, di PDF akan dicetak murni tulisan/tabel) -->
         <div v-if="selectedDebtor" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50">
             <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
                 
@@ -213,11 +216,9 @@
                     </button>
                 </div>
                 
-                <!-- Wrapper Scroll -->
+                <!-- Wrapper Scroll Tampilan UI Aplikasi -->
                 <div class="overflow-y-auto flex-1 bg-slate-50/50 p-4 sm:p-8">
-                    <!-- Area yang akan di cetak PDF (Tampilan disamakan dengan referensi gambar) -->
-                    <div id="pdf-content" class="bg-white p-8 sm:p-10 mx-auto w-full">
-                        
+                    <div id="pdf-content" class="bg-white p-8 sm:p-10 mx-auto w-full rounded-2xl shadow-sm border border-slate-100">
                         <!-- Header Laporan -->
                         <div class="text-center mb-8">
                             <h2 class="text-3xl font-black text-[#1e1b4b] tracking-tight">Laporan Riwayat Pinjaman</h2>
@@ -281,15 +282,15 @@
                                 </tbody>
                             </table>
                         </div>
-                        
                     </div>
                 </div>
 
                 <div class="px-8 py-5 border-t border-slate-100 bg-white flex justify-end gap-4 z-10">
                     <button @click="selectedDebtor = null" class="px-6 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors">Tutup</button>
+                    <!-- Tombol Download Baru Menggunakan Fungsi Native Document -->
                     <button @click="downloadPdf" class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Simpan ke PDF
+                        Cetak PDF Data Transaksi
                     </button>
                 </div>
             </div>
@@ -304,21 +305,19 @@
             setup() {
                 const loading = ref(true);
                 const selectedDebtor = ref(null);
-                const errorMessage = ref(''); // State untuk menampilkan pesan error
+                const errorMessage = ref(''); 
                 
-                // State untuk URL eksternal
                 const showSettings = ref(false);
                 const scriptUrl = ref(localStorage.getItem('gas_url') || '');
                 
                 const form = ref({
                     nama: '',
                     tipe: 'Pinjaman',
-                    tanggal: new Date().toISOString().split('T')[0], // Hari ini
+                    tanggal: new Date().toISOString().split('T')[0], 
                     jumlah: '',
                     keterangan: ''
                 });
 
-                // Format ribuan untuk input jumlah
                 const formattedJumlah = ref('');
                 const updateJumlah = (e) => {
                     let rawValue = e.target.value.replace(/[^0-9]/g, '');
@@ -331,7 +330,6 @@
                     }
                 };
 
-                // Mock Data untuk Preview
                 const mockData = ref({
                     totalPinjaman: 1500000,
                     totalPembayaran: 350000,
@@ -367,7 +365,7 @@
                 const saveSettings = () => {
                     localStorage.setItem('gas_url', scriptUrl.value);
                     showSettings.value = false;
-                    loadData(); // Coba muat ulang data dengan URL baru
+                    loadData();
                 };
 
                 const loadData = async () => {
@@ -407,14 +405,13 @@
                     if (typeof google !== 'undefined' && google.script) {
                         google.script.run.withSuccessHandler(() => {
                             loadData();
-                            form.value.nama = ''; // Mengosongkan nama peminjam
+                            form.value.nama = ''; 
                             form.value.jumlah = '';
                             formattedJumlah.value = '';
                             form.value.keterangan = '';
                         }).addTransaction(form.value);
                     } else if (scriptUrl.value) {
                         try {
-                            // Menambahkan mode 'no-cors' agar tidak diblokir oleh kebijakan CORS Apps Script
                             await fetch(scriptUrl.value, {
                                 method: 'POST',
                                 mode: 'no-cors',
@@ -422,7 +419,7 @@
                                 headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                             });
                             
-                            form.value.nama = ''; // Mengosongkan nama peminjam
+                            form.value.nama = ''; 
                             form.value.jumlah = '';
                             formattedJumlah.value = '';
                             form.value.keterangan = '';
@@ -433,7 +430,6 @@
                             loading.value = false;
                         }
                     } else {
-                        // Simulasi simpan data
                         setTimeout(() => {
                             const { nama, tipe, tanggal, jumlah, keterangan } = form.value;
                             const jml = Number(jumlah);
@@ -456,7 +452,7 @@
                             
                             mockData.value.debtors[nama].history.push({ tipe, tanggal, jumlah: jml, keterangan });
                             
-                            form.value.nama = ''; // Mengosongkan nama peminjam
+                            form.value.nama = ''; 
                             form.value.jumlah = '';
                             formattedJumlah.value = '';
                             form.value.keterangan = '';
@@ -472,57 +468,88 @@
                     };
                 };
 
+                // FUNGSI PDF BARU MENGGUNAKAN NATIVE JSPDF & AUTOTABLE (100% ANTI BLANK)
                 const downloadPdf = () => {
-                    const originalElement = document.getElementById('pdf-content');
-                    
-                    // 1. Trik Kloning (Clone Node): Kita copy elemen target secara diam-diam
-                    // Ini mencegah bug layar terpotong, blank putih, atau konflik dengan modal scroll
-                    const printContainer = document.createElement('div');
-                    const clone = originalElement.cloneNode(true);
-                    
-                    // 2. Atur ukuran dan posisi kloningan menjadi fix Desktop (800px)
-                    // Letakkan di belakang layar (z-index negatif) agar tidak terlihat berantakan oleh pengguna
-                    printContainer.style.position = 'absolute';
-                    printContainer.style.top = '0';
-                    printContainer.style.left = '0';
-                    printContainer.style.width = '800px';
-                    printContainer.style.background = 'white';
-                    printContainer.style.zIndex = '-9999';
-                    
-                    // 3. Masukkan ke dalam body sementara waktu
-                    printContainer.appendChild(clone);
-                    document.body.appendChild(printContainer);
+                    const debtor = selectedDebtor.value;
+                    const printDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-                    const opt = {
-                        margin:       [10, 0, 10, 0], // Margin atas dan bawah
-                        filename:     `Riwayat_Pinjaman_${selectedDebtor.value.nama.replace(/\s+/g, '_')}.pdf`,
-                        image:        { type: 'jpeg', quality: 1 },
-                        html2canvas:  { 
-                            scale: 2, 
-                            useCORS: true, 
-                            logging: false, 
-                            windowWidth: 800,
-                            scrollX: 0,
-                            scrollY: 0
-                        },
-                        // Kembalikan ke format Kertas A4 Portrait (Berdiri)
-                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        
-                        // Menjaga agar tabel tidak terpotong paksa jika sampai halaman 2
-                        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-                    };
+                    // Inisialisasi jsPDF (Kertas A4, Mode Portrait, Ukuran Milimeter)
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+
+                    // ================= BAGIAN HEADER KERTAS =================
+                    doc.setFontSize(16);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("LAPORAN RIWAYAT TRANSAKSI", 105, 20, { align: "center" });
+
+                    doc.setFontSize(10);
+                    doc.setFont("helvetica", "normal");
+                    doc.setTextColor(100); // Warna abu-abu
+                    doc.text(`Dicetak pada: ${printDate}`, 105, 26, { align: "center" });
+
+                    // Garis Pemisah Hitam di bawah judul
+                    doc.setLineWidth(0.5);
+                    doc.line(14, 32, 196, 32);
+
+
+                    // ================= BAGIAN INFO PEMINJAM =================
+                    doc.setTextColor(0); // Kembali ke warna hitam
+                    doc.setFontSize(11);
                     
-                    // 4. Generate PDF dari elemen kloningan tersebut
-                    html2pdf().set(opt).from(printContainer).save().then(() => {
-                        // 5. Bersihkan (Hapus) elemen kloningan setelah PDF selesai di-download
-                        document.body.removeChild(printContainer);
-                    }).catch(err => {
-                        console.error("Gagal membuat PDF:", err);
-                        // Tetap bersihkan elemen jika terjadi error
-                        if (document.body.contains(printContainer)) {
-                            document.body.removeChild(printContainer);
+                    doc.setFont("helvetica", "bold");
+                    doc.text("NAMA PEMINJAM : " + debtor.nama.toUpperCase(), 14, 42);
+
+                    doc.setFont("helvetica", "normal");
+                    doc.text(`Total Pinjaman       : ${formatRp(debtor.data.totalPinjaman)}`, 14, 49);
+                    doc.text(`Total Pembayaran : ${formatRp(debtor.data.totalPembayaran)}`, 14, 55);
+                    
+                    doc.setFont("helvetica", "bold");
+                    doc.text(`Sisa Pinjaman        : ${formatRp(debtor.data.sisa)}`, 14, 61);
+
+
+                    // ================= BAGIAN TABEL DATA =================
+                    const tableColumn = ["Tanggal", "Jenis Transaksi", "Jumlah (Rp)", "Keterangan"];
+                    const tableRows = [];
+
+                    // Mengisi array tabel dengan history peminjam
+                    debtor.data.history.forEach(hist => {
+                        tableRows.push([
+                            hist.tanggal,
+                            hist.tipe,
+                            formatRp(hist.jumlah),
+                            hist.keterangan || '-'
+                        ]);
+                    });
+
+                    // AutoTable akan secara otomatis membuat tabel dan berpindah halaman jika kepanjangan
+                    doc.autoTable({
+                        startY: 70, // Jarak tabel dari atas kertas
+                        head: [tableColumn],
+                        body: tableRows,
+                        theme: 'grid', // Tema garis tabel terlihat jelas (formal)
+                        headStyles: { 
+                            fillColor: [79, 70, 229], // Warna ungu/indigo di judul tabel
+                            textColor: 255, 
+                            fontStyle: 'bold',
+                            halign: 'center'
+                        }, 
+                        styles: { 
+                            fontSize: 10, 
+                            cellPadding: 4,
+                            textColor: 20
+                        },
+                        columnStyles: {
+                            0: { halign: 'center' },
+                            1: { halign: 'center' },
+                            2: { halign: 'right' } // Jumlah (Rp) rata kanan
+                        },
+                        alternateRowStyles: { 
+                            fillColor: [248, 250, 252] // Baris ganjil/genap beda warna tipis
                         }
                     });
+
+                    // Memicu pengunduhan file otomatis
+                    doc.save(`Riwayat_Pinjaman_${debtor.nama.replace(/\s+/g, '_')}.pdf`);
                 };
 
                 onMounted(loadData);
